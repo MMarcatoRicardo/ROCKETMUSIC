@@ -1011,6 +1011,16 @@ function addSongRow(container,nome="",artista="",tom=""){
   container.appendChild(row);
 }
 
+const DEFAULT_ESCALA=[
+  {emoji:"🎹",funcao:"Teclas",nome:""},
+  {emoji:"🥁",funcao:"Bateria",nome:""},
+  {emoji:"🎸",funcao:"Guitarra",nome:""},
+  {emoji:"🎸",funcao:"Baixo",nome:""},
+  {emoji:"🎤",funcao:"Ministra",nome:""},
+  {emoji:"🎤",funcao:"Vocais",nome:""},
+  {emoji:"🎛️",funcao:"Sonoplasta",nome:""},
+];
+
 // ── OPEN FORM ──
 function openEventForm(ev){
   editingEventId=ev?ev.id:null;
@@ -1036,6 +1046,9 @@ function openEventForm(ev){
     (ev.liturgia||[]).forEach(p=>addLitRow(p.titulo||"",p.musicas||""));
     (ev.materiais||[]).forEach(m=>addMatRow(m.nome||"",m.url||"",m.emoji||"🔗"));
     (ev.setlist||[]).forEach(g=>addSetGroup(g.titulo||"",g.musicas||[]));
+  }else{
+    // Novo evento: pré-preenche escala padrão
+    DEFAULT_ESCALA.forEach(p=>addEscalaRow(p.funcao,p.emoji,p.nome));
   }
 
   renderDcColors();
