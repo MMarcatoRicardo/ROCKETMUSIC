@@ -202,8 +202,8 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--tx);min-hei
 /* ── EVENTOS PASSADOS ── */
 .past-card{background:var(--bg2);border:1px solid var(--bd);border-radius:14px;margin-bottom:12px;overflow:hidden;cursor:pointer;transition:border-color .2s}
 .past-card:hover{border-color:var(--bd3)}
-.past-card-img{width:100%;height:140px;object-fit:cover;display:block;background:var(--bg3)}
-.past-card-img-placeholder{width:100%;height:140px;background:linear-gradient(135deg,var(--bg3) 0%,var(--bg4) 100%);display:flex;align-items:center;justify-content:center;font-size:36px;color:var(--bd3)}
+.past-card-img{width:100%;aspect-ratio:4/3;object-fit:cover;object-position:center top;display:block;background:var(--bg3)}
+.past-card-img-placeholder{width:100%;aspect-ratio:4/3;background:linear-gradient(135deg,var(--bg3) 0%,var(--bg4) 100%);display:flex;align-items:center;justify-content:center;font-size:36px;color:var(--bd3)}
 .past-card-body{padding:14px 16px}
 .past-card-name{font-size:14px;font-weight:700;color:#fff}
 .past-card-meta{font-size:12px;color:var(--tx3);margin-top:4px}
@@ -899,7 +899,7 @@ function renderPassados(filterType="Todos"){
     const totalMusicas=Object.values(songCount).reduce((a,b)=>a+b,0);
 
     statsHtml=`<div class="acc" id="acc-stats" style="margin-bottom:16px">
-      <button class="acc-btn" onclick="toggleAcc('acc-stats')">
+      <button class="acc-btn" id="acc-stats-btn">
         <span class="ab-left"><span class="ab-icon">📊</span> Histórico & Estatísticas</span>
         <span class="ab-right"><span class="ab-hint">clique para ver</span><span class="ab-chev">▼</span></span>
       </button>
@@ -924,8 +924,9 @@ function renderPassados(filterType="Todos"){
     </div>`;
   }
 
-  if(!filtered.length){el.innerHTML=statsHtml+`<div class="event-empty"><div class="ee-icon">📸</div><div class="ee-title">Sem eventos passados</div><div class="ee-sub">Os eventos realizados aparecerão aqui.</div></div>`;
-    el.querySelector("#acc-stats .acc-btn")?.addEventListener("click",()=>toggleAcc("acc-stats"));
+  if(!filtered.length){
+    el.innerHTML=statsHtml+`<div class="event-empty"><div class="ee-icon">📸</div><div class="ee-title">Sem eventos passados</div><div class="ee-sub">Os eventos realizados aparecerão aqui.</div></div>`;
+    document.getElementById("acc-stats-btn")?.addEventListener("click",()=>toggleAcc("acc-stats"));
     return;
   }
   el.innerHTML=statsHtml+filtered.map(ev=>`
@@ -937,7 +938,7 @@ function renderPassados(filterType="Todos"){
       </div>
     </div>
   `).join("");
-  el.querySelector("#acc-stats .acc-btn")?.addEventListener("click",()=>toggleAcc("acc-stats"));
+  el.querySelector("#acc-stats-btn")?.addEventListener("click",()=>toggleAcc("acc-stats"));
   el.querySelectorAll(".past-card").forEach(c=>c.onclick=()=>{
     detailFromTab="passados";openEventDetail(c.dataset.id);
   });
