@@ -306,6 +306,37 @@ input[type=color]{opacity:0;position:absolute;width:1px;height:1px}
 .loading-spin{width:24px;height:24px;border:2px solid var(--bd2);border-top-color:var(--or);border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 12px}
 @keyframes spin{to{transform:rotate(360deg)}}
 
+/* ── AVISO BOX (escala sem evento) ── */
+.aviso-box{background:rgba(255,106,0,.07);border:1px solid var(--orb);border-radius:12px;padding:28px 20px;text-align:center;margin-top:4px}
+.aviso-icon{font-size:32px;margin-bottom:12px}
+.aviso-text{font-size:15px;font-weight:700;color:var(--or);line-height:1.5;letter-spacing:.01em}
+
+/* ── BTN VER INFORMAÇÕES ── */
+.btn-ver-info{
+  background:transparent;border:1px solid var(--bd3);border-radius:6px;
+  color:var(--tx3);font-family:'Inter',sans-serif;font-size:10px;font-weight:600;
+  padding:4px 10px;cursor:pointer;letter-spacing:.04em;
+  transition:all .15s;white-space:nowrap;margin-right:6px;
+}
+.btn-ver-info:hover{border-color:var(--or);color:var(--or);background:var(--ord)}
+
+/* ── DETAIL HERO ── */
+.detail-hero{width:100%;max-height:260px;overflow:hidden;background:var(--bg3)}
+.detail-hero img{width:100%;height:260px;object-fit:cover;display:block}
+
+/* ── TODAY BANNER ── */
+.today-banner{
+  background:linear-gradient(90deg,rgba(255,106,0,.18) 0%,rgba(255,106,0,.08) 100%);
+  border:1px solid var(--orb);border-radius:10px;
+  padding:12px 16px;margin-bottom:16px;
+  display:flex;align-items:center;gap:12px;
+  animation:pulseOrg 2.5s ease-in-out infinite;
+}
+@keyframes pulseOrg{0%,100%{border-color:var(--orb)}50%{border-color:var(--or)}}
+.today-banner .tb-fire{font-size:22px;flex-shrink:0}
+.today-banner .tb-text{font-size:13px;font-weight:700;color:var(--or);letter-spacing:.03em;text-transform:uppercase}
+.today-banner .tb-sub{font-size:11px;color:var(--tx3);font-weight:400;text-transform:none;margin-top:1px}
+
 /* ── SCROLLBAR ── */
 ::-webkit-scrollbar{width:4px}
 ::-webkit-scrollbar-track{background:transparent}
@@ -342,6 +373,9 @@ input[type=color]{opacity:0;position:absolute;width:1px;height:1px}
   </div>
 
   <div class="app-main">
+
+    <!-- ── TODAY BANNER ── -->
+    <div class="today-banner" id="today-banner" style="display:none"></div>
 
     <!-- ── TAB: ESCALA ── -->
     <div class="tab-panel active" id="tab-escala">
@@ -413,8 +447,8 @@ input[type=color]{opacity:0;position:absolute;width:1px;height:1px}
         <div class="frow">
           <div class="fgroup"><label>Nome do Evento</label><input class="finput" id="f-name" placeholder="Ex: Firenight Março"></div>
           <div class="fgroup"><label>Tipo</label>
-            <select class="fselect" id="f-tipo">
-              <option>Firenight</option><option>Culto Regular</option><option>Evento Especial</option><option>Ensaio</option><option>Outro</option>
+            <select class="fselect" id="f-tipo" onchange="handleTipoChange()">
+              <option>Firenight</option><option>Culto Regular</option><option>Evento Especial</option><option>Ensaio</option><option>Aviso / Sem Escala</option><option>Outro</option>
             </select>
           </div>
         </div>
@@ -424,6 +458,14 @@ input[type=color]{opacity:0;position:absolute;width:1px;height:1px}
         </div>
         <div class="fgroup"><label>Versículo (opcional)</label><input class="finput" id="f-versiculo" placeholder="Ex: Rm 12.1 — Apresentai os vossos corpos..."></div>
 
+        <!-- Mensagem de aviso (só aparece no tipo Aviso / Sem Escala) -->
+        <div class="fgroup" id="f-aviso-wrap" style="display:none">
+          <label>Mensagem de Aviso</label>
+          <input class="finput" id="f-aviso" placeholder="Ex: MUSICAL DE PÁSCOA (não haverá Rockets neste dia)">
+          <div style="font-size:11px;color:var(--tx3);margin-top:6px">Esta mensagem aparecerá no lugar da escala.</div>
+        </div>
+
+        <div id="form-sections-normal">
         <div class="form-section">Escala</div>
         <div class="dyn-list" id="escala-list"></div>
         <button class="btn-add-item" id="btn-add-escala">＋ Adicionar pessoa</button>
@@ -439,6 +481,7 @@ input[type=color]{opacity:0;position:absolute;width:1px;height:1px}
         <div class="form-section">Materiais</div>
         <div class="dyn-list" id="materiais-list"></div>
         <button class="btn-add-item" id="btn-add-mat">＋ Adicionar material/link</button>
+        </div><!-- /form-sections-normal -->
 
         <div class="form-section">Dress Code</div>
         <div class="fgroup">
@@ -527,11 +570,12 @@ window.handleEditBtn=async function(){
 };
 
 async function requireAdminAndEdit(){
+  // Se não tem currentUser, tenta login
   if(!currentUser){
     try{
       const result=await signInWithPopup(auth,prov);
-      // onAuthStateChanged irá atualizar currentUser
-      await new Promise(r=>setTimeout(r,300));
+      await new Promise(r=>setTimeout(r,400));
+      currentUser=result.user; // garante atualização imediata
       if(result.user.email!==ADMIN_EMAIL){
         toast("Acesso restrito ao administrador","err");
         return false;
@@ -608,6 +652,7 @@ async function loadEvents(){
     const q=query(collection(db,EVENTS_COL),orderBy("data","asc"));
     const snap=await getDocs(q);
     allEvents=snap.docs.map(d=>({id:d.id,...d.data()}));
+    escalaEventIndex=-1; // recalcula índice ao renderizar
     // Seed Firenight se ainda não existir
     if(!allEvents.find(e=>e.data==="2026-03-28")){
       try{
@@ -621,10 +666,25 @@ async function loadEvents(){
 }
 
 function renderAll(){
+  renderTodayBanner();
   renderEscala();
   renderProximos();
   renderPassados();
   if(document.getElementById("admin-list-view").style.display!=="none") renderAdminList();
+}
+
+// ── TODAY BANNER ──
+function renderTodayBanner(){
+  const todayStr=toDateStr(new Date());
+  const ev=allEvents.find(e=>e.data===todayStr);
+  const banner=document.getElementById("today-banner");
+  if(!banner)return;
+  if(ev){
+    banner.innerHTML=`<span class="tb-fire">🔥</span><div><div class="tb-text">Hoje é o ${ev.nome||"Evento"}!</div><div class="tb-sub">${ev.hora?" às "+ev.hora+" · ":""} Que seja glorioso 🙌</div></div>`;
+    banner.style.display="flex";
+  }else{
+    banner.style.display="none";
+  }
 }
 
 // ── HELPERS ──
@@ -652,87 +712,86 @@ function startCountdown(dateStr,horaStr,containerId){
   update();cdInterval=setInterval(update,1000);
 }
 
-// ── SATURDAY HELPERS ──
-// Gera lista de sábados: 8 semanas atrás até 12 semanas à frente
-function getSaturdays(){
-  const sats=[];
-  const ref=new Date();ref.setHours(0,0,0,0);
-  // Encontra o sábado mais próximo passado ou atual
-  const dayOfWeek=ref.getDay(); // 0=Dom ... 6=Sab
-  const daysToLastSat=dayOfWeek===6?0:dayOfWeek+1;
-  const base=new Date(ref);base.setDate(ref.getDate()-daysToLastSat);
-  for(let i=-8;i<=12;i++){
-    const d=new Date(base);d.setDate(base.getDate()+i*7);
-    sats.push(toDateStr(d));
-  }
-  return sats;
-}
 function toDateStr(d){return d.toISOString().slice(0,10)}
-function todaySaturday(){
-  // Índice do sábado atual (ou próximo) na lista
-  const sats=getSaturdays();
-  const td=toDateStr(new Date());
-  // pega o primeiro sábado >= hoje
-  const idx=sats.findIndex(s=>s>=td);
-  return idx>=0?idx:sats.length-1;
-}
-function fmtSaturdayNav(dateStr){
-  const d=parseDate(dateStr);if(!d)return dateStr;
-  const mes=d.toLocaleDateString("pt-BR",{month:"long"});
-  const dia=String(d.getDate()).padStart(2,"0");
-  return `${mes.charAt(0).toUpperCase()+mes.slice(1)} ${dia}`;
+
+// ── TAB: ESCALA ── navega pelos eventos cadastrados (não sábados fixos)
+function initEscalaIndex(){
+  if(escalaEventIndex===-1){
+    const todayStr=toDateStr(new Date());
+    // Pega o índice do próximo evento (ou o último se não houver futuro)
+    const idx=allEvents.findIndex(e=>e.data>=todayStr);
+    escalaEventIndex=idx>=0?idx:Math.max(0,allEvents.length-1);
+  }
 }
 
-// ── TAB: ESCALA ──
-// escalaEventIndex agora é índice dentro de getSaturdays()
-function initEscalaIndex(){
-  if(escalaEventIndex===-1) escalaEventIndex=todaySaturday();
+function getEscalaEventIcon(tipo){
+  if(tipo==="Firenight") return "🔥";
+  if(tipo==="Aviso / Sem Escala") return "📌";
+  return "📅";
 }
 
 function renderEscala(){
   initEscalaIndex();
-  const sats=getSaturdays();
-  if(escalaEventIndex<0)escalaEventIndex=0;
-  if(escalaEventIndex>=sats.length)escalaEventIndex=sats.length-1;
+  if(escalaEventIndex<0) escalaEventIndex=0;
+  if(escalaEventIndex>=allEvents.length) escalaEventIndex=Math.max(0,allEvents.length-1);
 
-  const satDate=sats[escalaEventIndex];
-  // Procura evento cadastrado nesse sábado
-  const ev=allEvents.find(e=>e.data===satDate)||null;
-  const escala=ev?.escala||[];
   const el=document.getElementById("escala-content");
+
+  if(!allEvents.length){
+    el.innerHTML=`<div class="event-empty"><div class="ee-icon">📅</div><div class="ee-title">Nenhum evento cadastrado</div><div class="ee-sub">O admin pode criar eventos pelo botão Editar.</div></div>`;
+    return;
+  }
+
+  const ev=allEvents[escalaEventIndex];
+  const escala=ev?.escala||[];
+  const isAviso=ev?.tipo==="Aviso / Sem Escala";
 
   el.innerHTML=`
     <div class="escala-nav">
       <button class="escala-nav-btn" id="escala-prev" ${escalaEventIndex===0?"disabled":""}>‹</button>
       <div class="escala-nav-center">
-        <div class="escala-nav-name">${ev?ev.nome||"Evento":"Sábado"}</div>
-        <div class="escala-nav-date">${fmtSaturdayNav(satDate)}</div>
+        <div class="escala-nav-name">${ev.nome||"Evento"}</div>
+        <div class="escala-nav-date">${fmtDate(ev.data)}${ev.hora?" · "+ev.hora:""}</div>
       </div>
-      <button class="escala-nav-btn" id="escala-next" ${escalaEventIndex>=sats.length-1?"disabled":""}>›</button>
+      <button class="escala-nav-btn" id="escala-next" ${escalaEventIndex>=allEvents.length-1?"disabled":""}>›</button>
     </div>
 
-    ${ev?`<div class="info-box"><span class="ib-icon">${ev.tipo==="Firenight"?"🔥":"📅"}</span><div><strong>${ev.nome||"Evento"}</strong>${fmtDate(ev.data)}${ev.hora?" às "+ev.hora:""}</div></div>`:""}
-
-    <div class="acc open" id="acc-escala">
-      <button class="acc-btn" onclick="toggleAcc('acc-escala')">
-        <span class="ab-left"><span class="ab-icon">👥</span> Escala</span>
-        <span class="ab-right"><span class="ab-chev">▼</span></span>
-      </button>
-      <div class="acc-body">
-        ${escala.length
-          ? escala.map(p=>`<div class="escala-row"><span class="e-role">${p.emoji||""} ${p.funcao||""}</span><span class="e-nome">${p.nome||""}</span></div>`).join("")
-          : `<div style="padding:16px 0;text-align:center;color:var(--tx3);font-size:13px">Escala ainda não definida para este sábado.</div>`
-        }
+    ${isAviso?`
+      <div class="aviso-box">
+        <div class="aviso-icon">📌</div>
+        <div class="aviso-text">${ev.aviso||ev.nome||"Sem escala neste dia"}</div>
       </div>
-    </div>
+    `:`
+      <div class="acc open" id="acc-escala">
+        <button class="acc-btn" onclick="toggleAcc('acc-escala')">
+          <span class="ab-left"><span class="ab-icon">👥</span> Escala</span>
+          <span class="ab-right">
+            ${ev.id?`<button class="btn-ver-info" id="btn-ver-info">Ver informações ›</button>`:""}
+            <span class="ab-chev">▼</span>
+          </span>
+        </button>
+        <div class="acc-body">
+          ${escala.length
+            ?escala.map(p=>`<div class="escala-row"><span class="e-role">${p.emoji||""} ${p.funcao||""}</span><span class="e-nome">${p.nome||""}</span></div>`).join("")
+            :`<div style="padding:16px 0;text-align:center;color:var(--tx3);font-size:13px">Escala ainda não definida para este evento.</div>`
+          }
+        </div>
+      </div>
 
-    ${ev&&isFuture(ev.data)?`<div class="countdown" id="countdown-escala"></div>`:""}
+      ${isFuture(ev.data)?`<div class="countdown" id="countdown-escala"></div>`:""}
+    `}
   `;
 
-  if(ev&&isFuture(ev.data)) startCountdown(ev.data,ev.hora||"00:00","countdown-escala");
+  if(!isAviso&&isFuture(ev.data)) startCountdown(ev.data,ev.hora||"00:00","countdown-escala");
 
   document.getElementById("escala-prev").onclick=()=>{escalaEventIndex--;renderEscala()};
   document.getElementById("escala-next").onclick=()=>{escalaEventIndex++;renderEscala()};
+
+  if(!isAviso) document.getElementById("btn-ver-info")?.addEventListener("click",e=>{
+    e.stopPropagation();
+    detailFromTab="escala";
+    openEventDetail(ev.id);
+  });
 }
 
 // ── TAB: PRÓXIMOS EVENTOS ──
@@ -803,6 +862,7 @@ function openEventDetail(id){
   const dcColors=ev.dresscode?.cores||[];
 
   let html=`
+    ${ev.foto?`<div class="detail-hero"><img src="${ev.foto}" alt="${ev.nome||""}" onerror="this.parentElement.style.display='none'"></div>`:""}
     <div class="detail-header">
       <div class="detail-tag">Rocket Music · ${ev.tipo||"Evento"}</div>
       <div class="detail-title">${ev.nome||"Evento"}</div>
@@ -852,7 +912,9 @@ function openEventDetail(id){
   else document.getElementById("countdown-detail")?.remove();
 
   // edit button in detail
-  document.getElementById("btn-edit-detail").onclick=async()=>{
+  const editDetailBtn=document.getElementById("btn-edit-detail");
+  editDetailBtn.style.display=currentUser?.email===ADMIN_EMAIL?"inline-flex":"none";
+  editDetailBtn.onclick=async()=>{
     if(await requireAdminAndEdit()) openEventFormById(ev.id);
   };
   // wire accordions
@@ -1034,6 +1096,13 @@ const DEFAULT_ESCALA=[
   {emoji:"🎛️",funcao:"Sonoplasta",nome:""},
 ];
 
+// ── TIPO CHANGE (mostra/oculta seções do form) ──
+window.handleTipoChange=function(){
+  const isAviso=document.getElementById("f-tipo").value==="Aviso / Sem Escala";
+  document.getElementById("f-aviso-wrap").style.display=isAviso?"block":"none";
+  document.getElementById("form-sections-normal").style.display=isAviso?"none":"block";
+};
+
 // ── OPEN FORM ──
 function openEventForm(ev){
   editingEventId=ev?ev.id:null;
@@ -1048,6 +1117,7 @@ function openEventForm(ev){
   document.getElementById("f-versiculo").value=ev?.versiculo||"";
   document.getElementById("f-foto").value=ev?.foto||"";
   document.getElementById("f-dc-obs").value=ev?.dresscode?.obs||"";
+  document.getElementById("f-aviso").value=ev?.aviso||"";
   document.getElementById("escala-list").innerHTML="";
   document.getElementById("liturgia-list").innerHTML="";
   document.getElementById("materiais-list").innerHTML="";
@@ -1065,6 +1135,7 @@ function openEventForm(ev){
   }
 
   renderDcColors();
+  handleTipoChange();
   showEventForm();
 }
 
@@ -1105,6 +1176,7 @@ function collectForm(){
   return{
     nome:document.getElementById("f-name").value.trim(),
     tipo:document.getElementById("f-tipo").value,
+    aviso:document.getElementById("f-aviso").value.trim(),
     data:document.getElementById("f-data").value,
     hora:document.getElementById("f-hora").value,
     versiculo:document.getElementById("f-versiculo").value.trim(),
@@ -1146,10 +1218,7 @@ document.getElementById("btn-delete-event").onclick=async()=>{
 };
 
 // ── EDIT FROM DETAIL ──
-document.getElementById("btn-edit-detail").onclick=()=>{
-  const id=document.getElementById("event-detail-content").querySelector("[data-ev-id]")?.dataset?.evId;
-  // fallback: find event from title
-};
+// (handler is set inside openEventDetail, using ev.id via closure)
 
 </script>
 </body>
