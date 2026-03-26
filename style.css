@@ -129,8 +129,8 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--tx);min-hei
 .btn-mat.yt:hover{border-color:#ff4444}
 .btn-mat.sp{background:#001a08;border-color:#0f3d1a;color:#1ed760}
 .btn-mat.sp:hover{border-color:#1ed760}
-.btn-mat.drive{background:#001220;border-color:#0a2a44;color:var(--blue)}
-.btn-mat.drive:hover{border-color:var(--blue)}
+.btn-mat.drive{background:#1a1400;border-color:#3d3000;color:var(--gold)}
+.btn-mat.drive:hover{border-color:var(--gold)}
 .mat-nota{background:#141006;border:1px solid #2e2200;border-radius:8px;padding:14px 16px;font-size:13px;line-height:1.6;color:#999;margin-top:14px}
 .mat-nota strong{color:var(--gold)}
 

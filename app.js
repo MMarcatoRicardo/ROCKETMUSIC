@@ -252,18 +252,19 @@ function isFuture(s){const d=parseDate(s);return d&&d>=today}
 function isPast(s){const d=parseDate(s);return d&&d<today}
 
 // ── COUNTDOWN ──
-let cdInterval=null;
+const cdIntervals={};
 function startCountdown(dateStr,horaStr,containerId){
-  if(cdInterval)clearInterval(cdInterval);
+  if(cdIntervals[containerId])clearInterval(cdIntervals[containerId]);
   const target=new Date(dateStr+"T"+(horaStr||"00:00")+":00");
   function update(){
     const diff=target-new Date();
-    const el=document.getElementById(containerId);if(!el)return clearInterval(cdInterval);
-    if(diff<=0){el.innerHTML=`<div class="cd-done">É hoje! Vamos ser incendiados 🔥</div>`;clearInterval(cdInterval);return}
+    const el=document.getElementById(containerId);
+    if(!el){clearInterval(cdIntervals[containerId]);delete cdIntervals[containerId];return}
+    if(diff<=0){el.innerHTML=`<div class="cd-done">É hoje! Vamos ser incendiados 🔥</div>`;clearInterval(cdIntervals[containerId]);delete cdIntervals[containerId];return}
     const d=Math.floor(diff/86400000),h=Math.floor((diff%86400000)/3600000),m=Math.floor((diff%3600000)/60000),s=Math.floor((diff%60000)/1000);
     el.innerHTML=`<div class="cd-block"><div class="cd-num">${String(d).padStart(2,"0")}</div><div class="cd-lbl">Dias</div></div><div class="cd-block"><div class="cd-num">${String(h).padStart(2,"0")}</div><div class="cd-lbl">Horas</div></div><div class="cd-block"><div class="cd-num">${String(m).padStart(2,"0")}</div><div class="cd-lbl">Min</div></div><div class="cd-block"><div class="cd-num">${String(s).padStart(2,"0")}</div><div class="cd-lbl">Seg</div></div>`;
   }
-  update();cdInterval=setInterval(update,1000);
+  update();cdIntervals[containerId]=setInterval(update,1000);
 }
 
 function toDateStr(d){return d.toISOString().slice(0,10)}
@@ -501,7 +502,7 @@ function openEventDetail(id){
   `,"clique para ver");
 
   if(materiais.length) html+=accordion("acc-d-mat","📦","Materiais de Ensaio",`
-    ${materiais.map(m=>`<a class="btn-mat" href="${m.url||"#"}" target="_blank" rel="noopener"><span class="mat-icon">${m.emoji||"🔗"}</span><span class="mat-text">${m.nome||""}</span><span class="mat-hint">↗</span></a>`).join("")}
+    ${materiais.map(m=>`<a class="btn-mat ${getMatClass(m.url||"")}" href="${m.url||"#"}" target="_blank" rel="noopener"><span class="mat-icon">${m.emoji||"🔗"}</span><span class="mat-text">${m.nome||""}</span><span class="mat-hint">↗</span></a>`).join("")}
   `,"clique para ver");
 
   if(dcColors.length) html+=accordion("acc-d-dc","🕶️","Dress Code",`
@@ -567,6 +568,14 @@ function openEventDetail(id){
   window.scrollTo(0,0);
 }
 
+function getMatClass(url){
+  if(!url)return"";
+  if(url.includes("youtube.com")||url.includes("youtu.be"))return"yt";
+  if(url.includes("spotify.com"))return"sp";
+  if(url.includes("drive.google.com"))return"drive";
+  return"";
+}
+
 function accordion(id,icon,title,body,hint=""){
   return `<div class="acc" id="${id}">
     <button class="acc-btn">
@@ -585,7 +594,7 @@ document.getElementById("detail-back-btn").onclick=()=>{
   document.getElementById("tab-escala").style.display="";
   document.getElementById("tab-proximos").style.display="";
   document.getElementById("tab-passados").style.display="";
-  if(cdInterval)clearInterval(cdInterval);
+  if(cdIntervals["countdown-detail"]){clearInterval(cdIntervals["countdown-detail"]);delete cdIntervals["countdown-detail"];}
 };
 
 // ── TABS ──
@@ -730,6 +739,19 @@ function addSongRow(container,nome="",artista="",tom=""){
   container.appendChild(row);
 }
 
+const DEFAULT_DRESSCODE={
+  "Firenight":["#111111","#ffffff","#ffd000","#ff6a00","#d94010","#cc1111"],
+  "Culto Regular":["#111111","#ffffff","#002366"],
+};
+
+const DEFAULT_MATERIAIS=[
+  {emoji:"▶️",nome:"Play no YouTube",url:""},
+  {emoji:"♫",nome:"Play no Spotify",url:""},
+  {emoji:"🎸",nome:"PDF das Cifras",url:""},
+  {emoji:"📄",nome:"PDF das Letras",url:""},
+  {emoji:"📁",nome:"Medley no Drive",url:""},
+];
+
 const DEFAULT_ESCALA=[
   {emoji:"🎹",funcao:"Teclas",nome:""},
   {emoji:"🥁",funcao:"Bateria",nome:""},
@@ -742,9 +764,14 @@ const DEFAULT_ESCALA=[
 
 // ── TIPO CHANGE (mostra/oculta seções do form) ──
 window.handleTipoChange=function(){
-  const isAviso=document.getElementById("f-tipo").value==="Aviso / Sem Escala";
+  const tipo=document.getElementById("f-tipo").value;
+  const isAviso=tipo==="Aviso / Sem Escala";
   document.getElementById("f-aviso-wrap").style.display=isAviso?"block":"none";
   document.getElementById("form-sections-normal").style.display=isAviso?"none":"block";
+  if(!editingEventId&&DEFAULT_DRESSCODE[tipo]){
+    dcSelected=[...DEFAULT_DRESSCODE[tipo]];
+    renderDcColors();
+  }
 };
 
 // ── OPEN FORM ──
@@ -774,8 +801,9 @@ function openEventForm(ev){
     (ev.materiais||[]).forEach(m=>addMatRow(m.nome||"",m.url||"",m.emoji||"🔗"));
     (ev.setlist||[]).forEach(g=>addSetGroup(g.titulo||"",g.musicas||[]));
   }else{
-    // Novo evento: pré-preenche escala padrão
+    // Novo evento: pré-preenche escala e materiais padrão
     DEFAULT_ESCALA.forEach(p=>addEscalaRow(p.funcao,p.emoji,p.nome));
+    DEFAULT_MATERIAIS.forEach(m=>addMatRow(m.nome,m.url,m.emoji));
   }
 
   renderDcColors();
