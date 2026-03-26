@@ -185,6 +185,9 @@ function renderHome(){
   const escala=next.escala||[];
   const setlist=next.setlist||[];
   const isAviso=next.tipo==="Aviso / Sem Escala";
+  const dcColors=next.dresscode?.cores||[];
+  const mats=(next.materiais||[]).filter(m=>m.url);
+  const hasEnsaio=next.horarioEnsaioInstrumental||next.horarioEnsaioVocal;
 
   el.innerHTML=`
     <div class="home-next-label">PRÓXIMO EVENTO</div>
@@ -192,10 +195,20 @@ function renderHome(){
       <div class="home-event-tag">${next.tipo||"Evento"}</div>
       <div class="home-event-name">${next.nome||"Evento"}</div>
       <div class="home-event-date">${fmtDate(next.data)}${next.hora?" · "+next.hora:""}</div>
+      ${hasEnsaio?`<div class="home-ensaio-row">${next.horarioEnsaioInstrumental?`<span>🎸 Instrumental: ${next.horarioEnsaioInstrumental}</span>`:""}${next.horarioEnsaioVocal?`<span>🎤 Vocal: ${next.horarioEnsaioVocal}</span>`:""}</div>`:""}
       ${next.versiculo?`<div class="home-event-verse">"${next.versiculo}"</div>`:""}
+      ${next.obs?`<div class="home-obs-box">📌 ${next.obs}</div>`:""}
       <div class="countdown" id="countdown-home" style="margin-top:16px"></div>
+      ${dcColors.length?`<div class="home-dc-row">${dcColors.map(c=>`<div class="home-dc-dot" style="background:${c};${c==="#ffffff"||c==="#FFFFFF"?"border:1.5px solid #444":""}"></div>`).join("")}</div>`:""}
       <button class="home-btn-detail" id="home-btn-detail">Ver detalhes completos →</button>
     </div>
+    ${mats.length?`
+      <div class="home-next-label" style="margin-top:4px">ACESSO RÁPIDO</div>
+      <div class="home-mats-row">
+        ${mats.map(m=>`<a class="home-mat-chip ${getMatClass(m.url)}" href="${m.url}" target="_blank" rel="noopener"><span>${m.emoji||"🔗"}</span>${m.nome||""}</a>`).join("")}
+      </div>
+    `:""}
+
 
     ${!isAviso&&escala.length?`
       <div class="home-next-label" style="margin-top:4px">ESCALA</div>
@@ -466,12 +479,14 @@ function openEventDetail(id){
   const materiais=ev.materiais||[];
   const dcColors=ev.dresscode?.cores||[];
 
+  const hasEnsaioD=ev.horarioEnsaioInstrumental||ev.horarioEnsaioVocal;
   let html=`
     ${ev.foto?`<div class="detail-hero"><img src="${ev.foto}" alt="${ev.nome||""}" onerror="this.parentElement.style.display='none'"></div>`:""}
     <div class="detail-header">
       <div class="detail-tag">Rocket Music · ${ev.tipo||"Evento"}</div>
       <div class="detail-title">${ev.nome||"Evento"}</div>
       <div class="detail-sub">${fmtDate(ev.data)}${ev.hora?" · "+ev.hora:""}</div>
+      ${hasEnsaioD?`<div class="detail-ensaio-row">${ev.horarioEnsaioInstrumental?`<span>🎸 Instrumental: ${ev.horarioEnsaioInstrumental}</span>`:""}${ev.horarioEnsaioVocal?`<span>🎤 Vocal: ${ev.horarioEnsaioVocal}</span>`:""}</div>`:""}
       ${ev.versiculo?`<div class="detail-verse">"${ev.versiculo}"</div>`:""}
       <button class="btn-share" id="btn-share-event">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
@@ -480,6 +495,7 @@ function openEventDetail(id){
       <div class="countdown" id="countdown-detail"></div>
     </div>
     <div class="wrap" style="max-width:640px;margin:0 auto;padding:20px 16px 60px">
+    ${ev.obs?`<div class="detail-obs-box">📌 ${ev.obs}</div>`:""}
   `;
 
   if(escala.length) html+=accordion("acc-d-escala","👥","Escala",`
@@ -789,6 +805,9 @@ function openEventForm(ev){
   document.getElementById("f-foto").value=ev?.foto||"";
   document.getElementById("f-dc-obs").value=ev?.dresscode?.obs||"";
   document.getElementById("f-aviso").value=ev?.aviso||"";
+  document.getElementById("f-ensaio-inst").value=ev?.horarioEnsaioInstrumental||"";
+  document.getElementById("f-ensaio-vocal").value=ev?.horarioEnsaioVocal||"";
+  document.getElementById("f-obs").value=ev?.obs||"";
   document.getElementById("escala-list").innerHTML="";
   document.getElementById("liturgia-list").innerHTML="";
   document.getElementById("materiais-list").innerHTML="";
@@ -853,6 +872,9 @@ function collectForm(){
     hora:document.getElementById("f-hora").value,
     versiculo:document.getElementById("f-versiculo").value.trim(),
     foto:document.getElementById("f-foto").value.trim(),
+    horarioEnsaioInstrumental:document.getElementById("f-ensaio-inst").value,
+    horarioEnsaioVocal:document.getElementById("f-ensaio-vocal").value,
+    obs:document.getElementById("f-obs").value.trim(),
     escala,setlist,liturgia,materiais,
     dresscode:{cores:[...dcSelected],obs:document.getElementById("f-dc-obs").value.trim()},
     updatedAt:new Date().toISOString(),

@@ -1,0 +1,13 @@
+{
+  "name": "Rocket Music",
+  "short_name": "Rocket Music",
+  "description": "Ministério de Louvor — Igreja Batista Lagoinha",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0d0d0d",
+  "theme_color": "#FF6A00",
+  "orientation": "portrait-primary",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}

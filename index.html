@@ -16,6 +16,12 @@
 <meta name="twitter:description" content="Ministério de Louvor do Rocket Curitiba" />
 <meta name="twitter:image" content="https://rocketmusic.com.br/preview.png" />
 
+<link rel="manifest" href="manifest.json"/>
+<meta name="theme-color" content="#FF6A00"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="Rocket Music"/>
+<link rel="apple-touch-icon" href="icon.svg"/>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
 <link rel="stylesheet" href="style.css"/>
 </head>
@@ -148,6 +154,13 @@
         </div>
 
         <div id="form-sections-normal">
+        <div class="form-section">Ensaios</div>
+        <div class="frow">
+          <div class="fgroup"><label>Ensaio Instrumental</label><input class="finput" id="f-ensaio-inst" type="time"></div>
+          <div class="fgroup"><label>Ensaio Vocal</label><input class="finput" id="f-ensaio-vocal" type="time"></div>
+        </div>
+        <div class="fgroup"><label>Observações gerais (opcional)</label><textarea class="finput ftextarea" id="f-obs" placeholder="Ex: Soundcheck às 16h · Reunião antes do evento..."></textarea></div>
+
         <div class="form-section">Escala</div>
         <div class="dyn-list" id="escala-list"></div>
         <button class="btn-add-item" id="btn-add-escala">＋ Adicionar pessoa</button>
