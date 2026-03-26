@@ -570,22 +570,33 @@ window.handleEditBtn=async function(){
 };
 
 async function requireAdminAndEdit(){
-  // Se não tem currentUser, tenta login
-  if(!currentUser){
+  // Pega o usuário atual direto do Firebase (mais confiável que a variável local)
+  let user=auth.currentUser||currentUser;
+
+  if(!user){
     try{
       const result=await signInWithPopup(auth,prov);
-      await new Promise(r=>setTimeout(r,400));
-      currentUser=result.user; // garante atualização imediata
-      if(result.user.email!==ADMIN_EMAIL){
-        toast("Acesso restrito ao administrador","err");
+      user=result.user;
+      currentUser=user;
+    }catch(e){
+      const code=e?.code||"";
+      if(code==="auth/popup-closed-by-user"||code==="auth/cancelled-popup-request") return false;
+      if(code==="auth/popup-blocked"){
+        toast("Popup bloqueado pelo navegador. Permita popups para este site.","err");
         return false;
       }
-    }catch(e){
-      if(e.code!=="auth/popup-closed-by-user") toast("Erro ao entrar","err");
+      if(code==="auth/unauthorized-domain"){
+        toast("Domínio não autorizado no Firebase. Veja o console.","err");
+        console.error("Adicione este domínio em Firebase Console → Authentication → Settings → Authorized domains:",location.hostname);
+        return false;
+      }
+      toast("Erro ao entrar: "+(e?.message||code),"err");
+      console.error("Auth error:",e);
       return false;
     }
   }
-  if(currentUser?.email!==ADMIN_EMAIL){
+
+  if(!user||user.email!==ADMIN_EMAIL){
     toast("Acesso restrito ao administrador","err");
     return false;
   }
