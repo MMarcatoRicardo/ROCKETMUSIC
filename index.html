@@ -341,6 +341,41 @@ input[type=color]{opacity:0;position:absolute;width:1px;height:1px}
 ::-webkit-scrollbar{width:4px}
 ::-webkit-scrollbar-track{background:transparent}
 ::-webkit-scrollbar-thumb{background:var(--bd3);border-radius:2px}
+
+/* ── SHARE BUTTON ── */
+.btn-share{
+  display:inline-flex;align-items:center;gap:7px;
+  margin-top:16px;padding:9px 20px;border-radius:10px;
+  background:var(--ord);border:1px solid var(--orb);
+  color:var(--or);font-family:'Inter',sans-serif;font-size:12px;font-weight:600;
+  cursor:pointer;transition:all .15s;letter-spacing:.04em;
+}
+.btn-share:hover{background:rgba(255,106,0,.22);border-color:var(--or)}
+.btn-share svg{width:13px;height:13px;flex-shrink:0}
+
+/* ── SONG PREVIEW BUTTON ── */
+.btn-yt-preview{
+  display:inline-flex;align-items:center;justify-content:center;
+  width:24px;height:24px;border-radius:5px;
+  border:1px solid #3a1111;background:transparent;
+  color:#ff5555;font-size:11px;
+  cursor:pointer;transition:all .15s;text-decoration:none;
+  flex-shrink:0;margin-top:2px;
+}
+.btn-yt-preview:hover{background:#1a0000;border-color:#ff4444}
+
+/* ── STATS ACCORDION (aba Passados) ── */
+.stats-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.stat-card{background:var(--bg3);border:1px solid var(--bd2);border-radius:10px;padding:14px 16px}
+.stat-num{font-size:28px;font-weight:800;color:var(--or);line-height:1;letter-spacing:-1px}
+.stat-lbl{font-size:11px;color:var(--tx3);margin-top:4px}
+.stat-rank-list{margin-top:4px}
+.stat-rank-item{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid #1a1a1a;font-size:13px}
+.stat-rank-item:last-child{border-bottom:none}
+.stat-rank-pos{font-size:11px;color:#3a3a3a;min-width:18px;font-variant-numeric:tabular-nums}
+.stat-rank-name{flex:1;color:#e8e8e8;font-weight:500}
+.stat-rank-sub{font-size:11px;color:#555}
+.stat-rank-count{font-size:12px;font-weight:700;color:var(--or2);background:var(--ord);border:1px solid rgba(255,106,0,.22);padding:2px 8px;border-radius:5px;flex-shrink:0}
 </style>
 </head>
 <body>
@@ -842,8 +877,58 @@ function renderPassados(filterType="Todos"){
   fbar.querySelectorAll(".filter-chip").forEach(c=>c.onclick=()=>renderPassados(c.dataset.type));
   const filtered=filterType==="Todos"?past:past.filter(e=>e.tipo===filterType);
   const el=document.getElementById("passados-content");
-  if(!filtered.length){el.innerHTML=`<div class="event-empty"><div class="ee-icon">📸</div><div class="ee-title">Sem eventos passados</div><div class="ee-sub">Os eventos realizados aparecerão aqui.</div></div>`;return}
-  el.innerHTML=filtered.map(ev=>`
+
+  // ── Stats accordion (sempre sobre todos os passados, não filtrado) ──
+  let statsHtml="";
+  if(past.length){
+    // contagem de músicas
+    const songCount={};
+    const artistCount={};
+    past.forEach(ev=>{
+      (ev.setlist||[]).forEach(g=>{
+        (g.musicas||[]).forEach(m=>{
+          if(!m.nome)return;
+          const key=m.nome.trim();
+          songCount[key]=(songCount[key]||0)+1;
+          if(m.artista){const ak=m.artista.trim();artistCount[ak]=(artistCount[ak]||0)+1;}
+        });
+      });
+    });
+    const topSongs=Object.entries(songCount).sort((a,b)=>b[1]-a[1]).slice(0,5);
+    const topArtists=Object.entries(artistCount).sort((a,b)=>b[1]-a[1]).slice(0,5);
+    const totalMusicas=Object.values(songCount).reduce((a,b)=>a+b,0);
+
+    statsHtml=`<div class="acc" id="acc-stats" style="margin-bottom:16px">
+      <button class="acc-btn" onclick="toggleAcc('acc-stats')">
+        <span class="ab-left"><span class="ab-icon">📊</span> Histórico & Estatísticas</span>
+        <span class="ab-right"><span class="ab-hint">clique para ver</span><span class="ab-chev">▼</span></span>
+      </button>
+      <div class="acc-body">
+        <div class="stats-row">
+          <div class="stat-card"><div class="stat-num">${past.length}</div><div class="stat-lbl">Eventos realizados</div></div>
+          <div class="stat-card"><div class="stat-num">${totalMusicas}</div><div class="stat-lbl">Execuções no total</div></div>
+        </div>
+        ${topSongs.length?`
+        <div style="font-size:10px;text-transform:uppercase;letter-spacing:.18em;color:var(--or);opacity:.8;margin-bottom:8px">🎵 Músicas mais tocadas</div>
+        <div class="acc" style="margin-bottom:12px;border-color:#1e1e1e">
+          <div class="stat-rank-list" style="padding:0 4px">
+            ${topSongs.map(([nome,n],i)=>`<div class="stat-rank-item"><span class="stat-rank-pos">${i+1}</span><span class="stat-rank-name">${nome}</span><span class="stat-rank-count">${n}×</span></div>`).join("")}
+          </div>
+        </div>`:""}
+        ${topArtists.length?`
+        <div style="font-size:10px;text-transform:uppercase;letter-spacing:.18em;color:var(--or);opacity:.8;margin-bottom:8px">🎤 Artistas mais tocados</div>
+        <div style="padding:0 4px">
+          ${topArtists.map(([nome,n],i)=>`<div class="stat-rank-item"><span class="stat-rank-pos">${i+1}</span><span class="stat-rank-name">${nome}</span><span class="stat-rank-count">${n}×</span></div>`).join("")}
+        </div>`:""}
+      </div>
+    </div>`;
+  }
+
+  if(!filtered.length){el.innerHTML=statsHtml+`<div class="event-empty"><div class="ee-icon">📸</div><div class="ee-title">Sem eventos passados</div><div class="ee-sub">Os eventos realizados aparecerão aqui.</div></div>`;
+    el.querySelector("#acc-stats .acc-btn")?.addEventListener("click",()=>toggleAcc("acc-stats"));
+    return;
+  }
+  el.innerHTML=statsHtml+filtered.map(ev=>`
     <div class="past-card" data-id="${ev.id}">
       ${ev.foto?`<img class="past-card-img" src="${ev.foto}" alt="${ev.nome||""}" loading="lazy" onerror="this.style.display='none'">`:`<div class="past-card-img-placeholder">📸</div>`}
       <div class="past-card-body">
@@ -852,6 +937,7 @@ function renderPassados(filterType="Todos"){
       </div>
     </div>
   `).join("");
+  el.querySelector("#acc-stats .acc-btn")?.addEventListener("click",()=>toggleAcc("acc-stats"));
   el.querySelectorAll(".past-card").forEach(c=>c.onclick=()=>{
     detailFromTab="passados";openEventDetail(c.dataset.id);
   });
@@ -879,6 +965,10 @@ function openEventDetail(id){
       <div class="detail-title">${ev.nome||"Evento"}</div>
       <div class="detail-sub">${fmtDate(ev.data)}${ev.hora?" · "+ev.hora:""}</div>
       ${ev.versiculo?`<div class="detail-verse">"${ev.versiculo}"</div>`:""}
+      <button class="btn-share" id="btn-share-event">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+        Compartilhar
+      </button>
       <div class="countdown" id="countdown-detail"></div>
     </div>
     <div class="wrap" style="max-width:640px;margin:0 auto;padding:20px 16px 60px">
@@ -892,7 +982,7 @@ function openEventDetail(id){
     ${setlist.map(g=>`
       <div class="set-group">
         <div class="set-group-title">${g.titulo||""}</div>
-        ${(g.musicas||[]).map((m,i)=>`<div class="song"><span class="song-n">${i+1}</span><div class="song-info"><div class="song-name">${m.nome||""}</div><div class="song-artist">${m.artista||""}</div></div>${m.tom?`<span class="song-key">${m.tom}</span>`:""}</div>`).join("")}
+        ${(g.musicas||[]).map((m,i)=>{const q=encodeURIComponent((m.nome||"")+(m.artista?" "+m.artista:""));const ytUrl=`youtube://results?search_query=${q}`;const ytFallback=`https://www.youtube.com/results?search_query=${q}`;return`<div class="song"><span class="song-n">${i+1}</span><div class="song-info"><div class="song-name">${m.nome||""}</div><div class="song-artist">${m.artista||""}</div></div>${m.tom?`<span class="song-key">${m.tom}</span>`:""}<a class="btn-yt-preview" href="${ytUrl}" onclick="if(!navigator.userAgent.match(/YouTubeApp/i)){this.href='${ytFallback}'}" target="_blank" rel="noopener" title="Buscar no YouTube">▶</a></div>`}).join("")}
       </div>
     `).join("")}
   `,"clique para ver");
@@ -921,6 +1011,19 @@ function openEventDetail(id){
 
   if(isFuture(ev.data)) startCountdown(ev.data,ev.hora,"countdown-detail");
   else document.getElementById("countdown-detail")?.remove();
+
+  // share button
+  document.getElementById("btn-share-event")?.addEventListener("click",()=>{
+    const texto=`🔥 ${ev.nome||"Evento"}${ev.tipo?" ("+ev.tipo+")":""}` +
+      `\n📅 ${fmtDate(ev.data)}${ev.hora?" às "+ev.hora:""}` +
+      (ev.versiculo?`\n\n"${ev.versiculo}"`:"")+
+      `\n\nRocket Music — Ministério de Louvor`;
+    if(navigator.share){
+      navigator.share({title:ev.nome||"Rocket Music",text:texto}).catch(()=>{});
+    }else{
+      navigator.clipboard?.writeText(texto).then(()=>toast("Copiado! 📋")).catch(()=>toast("Compartilhamento não suportado","err"));
+    }
+  });
 
   // edit button in detail
   const editDetailBtn=document.getElementById("btn-edit-detail");
