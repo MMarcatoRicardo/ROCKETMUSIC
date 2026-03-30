@@ -498,8 +498,9 @@ function openEventDetail(id){
     ${ev.obs?`<div class="detail-obs-box">📌 ${ev.obs}</div>`:""}
   `;
 
-  if(escala.length) html+=accordion("acc-d-escala","👥","Escala",`
-    ${escala.map(p=>`<div class="escala-row"><span class="e-role">${p.emoji||""} ${p.funcao||""}</span><span class="e-nome">${p.nome||""}</span></div>`).join("")}
+  const visibleEscala=escala.filter(p=>p.nome);
+  if(visibleEscala.length) html+=accordion("acc-d-escala","👥","Escala",`
+    ${visibleEscala.map(p=>`<div class="escala-row"><span class="e-role">${p.emoji||""} ${p.funcao||""}</span><span class="e-nome">${p.nome||""}</span></div>`).join("")}
   `,"clique para ver");
 
   if(setlist.length) html+=accordion("acc-d-setlist","🎵","Setlist",`
@@ -517,8 +518,9 @@ function openEventDetail(id){
     </div>
   `,"clique para ver");
 
-  if(materiais.length) html+=accordion("acc-d-mat","📦","Materiais de Ensaio",`
-    ${materiais.map(m=>`<a class="btn-mat ${getMatClass(m.url||"")}" href="${m.url||"#"}" target="_blank" rel="noopener"><span class="mat-icon">${m.emoji||"🔗"}</span><span class="mat-text">${m.nome||""}</span><span class="mat-hint">↗</span></a>`).join("")}
+  const visibleMateriais=materiais.filter(m=>m.url);
+  if(visibleMateriais.length) html+=accordion("acc-d-mat","📦","Materiais de Ensaio",`
+    ${visibleMateriais.map(m=>`<a class="btn-mat ${getMatClass(m.url)}" href="${m.url}" target="_blank" rel="noopener"><span class="mat-icon">${m.emoji||"🔗"}</span><span class="mat-text">${m.nome||""}</span><span class="mat-hint">↗</span></a>`).join("")}
   `,"clique para ver");
 
   if(dcColors.length) html+=accordion("acc-d-dc","🕶️","Dress Code",`
@@ -602,7 +604,7 @@ function accordion(id,icon,title,body,hint=""){
   </div>`;
 }
 
-document.getElementById("detail-back-btn").onclick=()=>{
+function closeEventDetail(){
   document.getElementById("event-detail").classList.remove("active");
   document.getElementById("event-detail-content").innerHTML="";
   document.querySelector(".tab-bar").style.display="";
@@ -611,7 +613,8 @@ document.getElementById("detail-back-btn").onclick=()=>{
   document.getElementById("tab-proximos").style.display="";
   document.getElementById("tab-passados").style.display="";
   if(cdIntervals["countdown-detail"]){clearInterval(cdIntervals["countdown-detail"]);delete cdIntervals["countdown-detail"];}
-};
+}
+document.getElementById("detail-back-btn").onclick=closeEventDetail;
 
 // ── TABS ──
 document.querySelectorAll(".tab-btn").forEach(btn=>{
@@ -837,7 +840,7 @@ function collectForm(){
     const emoji=row.querySelector("[data-field=emoji]")?.value.trim()||"";
     const funcao=row.querySelector("[data-field=funcao]")?.value.trim()||"";
     const nome=row.querySelector("[data-field=nome]")?.value.trim()||"";
-    if(funcao||nome) escala.push({emoji,funcao,nome});
+    if(nome) escala.push({emoji,funcao,nome});
   });
   const setlist=[];
   document.querySelectorAll("#setlist-groups .sg-block").forEach(block=>{
@@ -862,7 +865,7 @@ function collectForm(){
     const emoji=row.querySelector("[data-field=emoji]")?.value.trim()||"🔗";
     const nome=row.querySelector("[data-field=nome]")?.value.trim()||"";
     const url=row.querySelector("[data-field=url]")?.value.trim()||"";
-    if(nome||url) materiais.push({emoji,nome,url});
+    if(url) materiais.push({emoji,nome,url});
   });
   return{
     nome:document.getElementById("f-name").value.trim(),
@@ -886,6 +889,8 @@ document.getElementById("btn-save-event").onclick=async()=>{
   const data=collectForm();
   if(!data.nome){toast("Digite o nome do evento","err");return}
   if(!data.data){toast("Selecione a data","err");return}
+  const btn=document.getElementById("btn-save-event");
+  btn.disabled=true;
   try{
     if(editingEventId){
       await updateDoc(doc(db,EVENTS_COL,editingEventId),data);
@@ -897,6 +902,7 @@ document.getElementById("btn-save-event").onclick=async()=>{
     await loadEvents();
     showAdminList();
   }catch(e){console.error(e);toast("Erro ao salvar","err")}
+  finally{btn.disabled=false;}
 };
 
 // ── DELETE EVENT ──
@@ -908,6 +914,7 @@ document.getElementById("btn-delete-event").onclick=async()=>{
     toast("Evento excluído","err");
     await loadEvents();
     closeAdmin();
+    closeEventDetail();
   }catch(e){console.error(e);toast("Erro ao excluir","err")}
 };
 
