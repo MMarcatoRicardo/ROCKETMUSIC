@@ -247,7 +247,7 @@ function renderTodayBanner(){
   const banner=document.getElementById("today-banner");
   if(!banner)return;
   if(ev){
-    banner.innerHTML=`<span class="tb-fire">🔥</span><div><div class="tb-text">Hoje é o ${ev.nome||"Evento"}!</div><div class="tb-sub">${ev.hora?" às "+ev.hora+" · ":""} Que seja glorioso 🙌</div></div>`;
+    banner.innerHTML=`<span class="tb-fire">🔥</span><div><div class="tb-text">Hoje é o ${ev.nome||"Evento"}!</div><div class="tb-sub">${ev.hora?" às "+ev.hora+" · ":""} Vai ser incrível! 🚀</div></div>`;
     banner.style.display="flex";
   }else{
     banner.style.display="none";
