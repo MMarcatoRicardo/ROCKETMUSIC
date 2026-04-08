@@ -31,7 +31,7 @@ let detailFromTab=null;
 
 // ── TOAST ──
 function toast(msg,type="ok"){
-  const el=document.createElement("div");
+  el=document.createElement("div");
   el.className="toast-item "+type;
   el.textContent=(type==="ok"?"✓ ":"✕ ")+msg;
   document.getElementById("toast").appendChild(el);
@@ -45,7 +45,7 @@ function toast(msg,type="ok"){
 
 onAuthStateChanged(auth,user=>{
   currentUser=user;
-  const av=document.getElementById("user-avatar");
+  av=document.getElementById("user-avatar");
   if(user&&user.photoURL){av.src=user.photoURL;av.style.display="block"}
   else{av.style.display="none"}
 });
@@ -58,13 +58,13 @@ async function requireAdminAndEdit(){
   // Pega o usuário atual direto do Firebase (mais confiável que a variável local)
   let user=auth.currentUser||currentUser;
 
-  if(!user){
+  if(!user||user.isAnonymous){
     try{
-      const result=await signInWithPopup(auth,prov);
+      await auth.signOut();result=await signInWithPopup(auth,prov);
       user=result.user;
       currentUser=user;
     }catch(e){
-      const code=e?.code||"";
+      code=e?.code||"";
       if(code==="auth/popup-closed-by-user"||code==="auth/cancelled-popup-request") return false;
       if(code==="auth/popup-blocked"){
         toast("Popup bloqueado pelo navegador. Permita popups para este site.","err");
@@ -91,7 +91,7 @@ async function requireAdminAndEdit(){
 // ── LOAD EVENTS (público, sem auth) ──
 loadEvents();
 
-const FIRENIGHT_DATA={
+FIRENIGHT_DATA={
   nome:"Firenight Março",
   tipo:"Firenight",
   data:"2026-03-28",
@@ -146,14 +146,14 @@ const FIRENIGHT_DATA={
 async function loadEvents(){
   try{
     if(!auth.currentUser) await signInAnonymously(auth);
-    const q=query(collection(db,EVENTS_COL),orderBy("data","asc"));
-    const snap=await getDocs(q);
+    q=query(collection(db,EVENTS_COL),orderBy("data","asc"));
+    snap=await getDocs(q);
     allEvents=snap.docs.map(d=>({id:d.id,...d.data()}));
     escalaEventIndex=-1; // recalcula índice ao renderizar
     // Seed Firenight se ainda não existir
     if(!allEvents.find(e=>e.data==="2026-03-28")){
       try{
-        const ref=await addDoc(collection(db,EVENTS_COL),FIRENIGHT_DATA);
+        ref=await addDoc(collection(db,EVENTS_COL),FIRENIGHT_DATA);
         allEvents.push({id:ref.id,...FIRENIGHT_DATA});
         allEvents.sort((a,b)=>a.data.localeCompare(b.data));
       }catch(e){console.warn("Seed falhou (Firestore rules?):",e)}
@@ -173,9 +173,9 @@ function renderAll(){
 
 // ── HOME ──
 function renderHome(){
-  const todayStr=toDateStr(new Date());
-  const next=allEvents.find(e=>e.data>=todayStr);
-  const el=document.getElementById("inicio-content");
+  todayStr=toDateStr(new Date());
+  next=allEvents.find(e=>e.data>=todayStr);
+  el=document.getElementById("inicio-content");
   if(!el)return;
 
   if(!next){
