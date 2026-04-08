@@ -58,9 +58,9 @@ async function requireAdminAndEdit(){
   // Pega o usuário atual direto do Firebase (mais confiável que a variável local)
   let user=auth.currentUser||currentUser;
 
-  if(!user){
+  if(!user||user.isAnonymous){
     try{
-      const result=await signInWithPopup(auth,prov);
+      await auth.signOut();const result=await signInWithPopup(auth,prov);
       user=result.user;
       currentUser=user;
     }catch(e){
