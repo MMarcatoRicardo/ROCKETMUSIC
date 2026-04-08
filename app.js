@@ -1,5 +1,5 @@
 import{initializeApp}from"https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
-import{getAuth,GoogleAuthProvider,signInWithPopup,onAuthStateChanged}from"https://www.gstatic.com/firebasejs/12.10.0/firebase-auth.js";
+import{getAuth,GoogleAuthProvider,signInWithPopup,signInAnonymously,onAuthStateChanged}from"https://www.gstatic.com/firebasejs/12.10.0/firebase-auth.js";
 import{getFirestore,collection,doc,getDocs,addDoc,updateDoc,deleteDoc,query,orderBy}from"https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
 
 // ─────────────────────────────────────────────────────────────
@@ -145,6 +145,7 @@ const FIRENIGHT_DATA={
 
 async function loadEvents(){
   try{
+    if(!auth.currentUser) await signInAnonymously(auth);
     const q=query(collection(db,EVENTS_COL),orderBy("data","asc"));
     const snap=await getDocs(q);
     allEvents=snap.docs.map(d=>({id:d.id,...d.data()}));
