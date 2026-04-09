@@ -703,7 +703,8 @@ function renderDcColors(){
 document.getElementById("btn-add-dc-color").onclick=()=>document.getElementById("dc-color-picker").click();
 document.getElementById("dc-color-picker").oninput=e=>{};
 document.getElementById("dc-color-picker").onchange=e=>{
-  const c=e.target.value;if(!dcSelected.includes(c)){dcSelected.push(c);renderDcColors()}
+  const c=e.target.value;if(!dcSelected.includes(c)){dcSelected.push(c);renderDcColors();}
+  document.querySelectorAll(".dc-preset-btn").forEach(b=>b.classList.remove("active"));
 };
 
 // ── DYNAMIC LIST HELPERS ──
@@ -762,6 +763,32 @@ function addSongRow(container,nome="",artista="",tom=""){
 const DEFAULT_DRESSCODE={
   "Firenight":["#111111","#ffffff","#ffd000","#ff6a00","#d94010","#cc1111"],
   "Culto Regular":["#111111","#ffffff","#002366"],
+};
+
+const DRESSCODE_PRESETS=[
+  {label:"Cores Quentes", colors:["#111111","#ffffff","#ffd000","#ff6a00","#d94010","#cc1111"]},
+  {label:"Tons Terrosos", colors:["#683b22","#9c5b35","#ce9e6e","#e8c88d","#ffffff"]},
+  {label:"Jeans",         colors:["#111111","#1c3a5e","#6b9cbe","#ffffff"]},
+  {label:"Cores Frias",   colors:["#0d1b2a","#1b3a5c","#2e6da4","#5ba4cf","#a8d8ea","#ffffff"]},
+  {label:"Neutros",       colors:["#111111","#3a3a3a","#888888","#d0d0d0","#ffffff"]},
+  {label:"Roxo",          colors:["#1a0a2e","#3d1a78","#7c3aed","#c084fc","#ffffff"]},
+];
+
+function renderDcPresets(){
+  const wrap=document.getElementById("dc-presets-wrap");
+  if(!wrap)return;
+  wrap.innerHTML=DRESSCODE_PRESETS.map((p,i)=>
+    `<button class="dc-preset-btn" onclick="applyDcPreset(${i})" title="Aplicar: ${p.label}">
+      <span class="dc-preset-swatches">${p.colors.map(c=>`<span class="dc-preset-swatch" style="background:${c}${c==="#ffffff"||c==="#FFFFFF"?";border:1px solid #555":""}"></span>`).join("")}</span>
+      <span class="dc-preset-label">${p.label}</span>
+    </button>`
+  ).join("");
+}
+
+window.applyDcPreset=function(i){
+  dcSelected=[...DRESSCODE_PRESETS[i].colors];
+  renderDcColors();
+  document.querySelectorAll(".dc-preset-btn").forEach((b,j)=>b.classList.toggle("active",j===i));
 };
 
 const DEFAULT_MATERIAIS=[
@@ -830,6 +857,8 @@ function openEventForm(ev){
   }
 
   renderDcColors();
+  renderDcPresets();
+  document.querySelectorAll(".dc-preset-btn").forEach(b=>b.classList.remove("active"));
   handleTipoChange();
   showEventForm();
 }
