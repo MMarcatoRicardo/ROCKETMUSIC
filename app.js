@@ -255,6 +255,35 @@ function renderTodayBanner(){
   }
 }
 
+// ── MEDIA HELPERS (IMAGEM OU VÍDEO) ──
+function isVideo(url){
+  if(!url) return false;
+  return (
+    url.includes("youtube.com") ||
+    url.includes("youtu.be") ||
+    url.endsWith(".mp4") ||
+    url.endsWith(".webm")
+  );
+}
+
+function getVideoEmbed(url){
+  // YouTube
+  if(url.includes("youtube.com") || url.includes("youtu.be")){
+    const id = url.split("v=")[1]?.split("&")[0] || url.split("/").pop();
+    return `<iframe 
+      src="https://www.youtube.com/embed/${id}" 
+      frameborder="0" 
+      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+      allowfullscreen>
+    </iframe>`;
+  }
+
+  // vídeo direto (mp4)
+  return `<video controls playsinline>
+            <source src="${url}" type="video/mp4">
+          </video>`;
+}
+
 // ── HELPERS ──
 function parseDate(s){return s?new Date(s+"T12:00:00"):null}
 function fmtDate(s){const d=parseDate(s);if(!d)return"";return d.toLocaleDateString("pt-BR",{weekday:"long",day:"2-digit",month:"long",year:"numeric"})}
@@ -451,8 +480,14 @@ function renderPassados(filterType="Todos"){
   }
   el.innerHTML=statsHtml+filtered.map(ev=>`
     <div class="past-card" data-id="${ev.id}">
-      ${ev.foto?`<img class="past-card-img" src="${ev.foto}" alt="${ev.nome||""}" loading="lazy" onerror="this.style.display='none'">`:`<div class="past-card-img-placeholder">📸</div>`}
-      <div class="past-card-body">
+      ${
+          ev.foto
+            ? (isVideo(ev.foto)
+                ? `<div class="past-card-video">${getVideoEmbed(ev.foto)}</div>`
+                : `<img class="past-card-img" src="${ev.foto}" alt="${ev.nome||""}" loading="lazy" onerror="this.style.display='none'">`)
+            : `<div class="past-card-img-placeholder">📸</div>`
+        }
+        <div class="past-card-body">
         <div class="past-card-name">${ev.nome||"Evento"}</div>
         <div class="past-card-meta">${fmtDate(ev.data)}${ev.tipo?" · "+ev.tipo:""}</div>
       </div>
@@ -482,7 +517,15 @@ function openEventDetail(id){
 
   const hasEnsaioD=ev.horarioEnsaioInstrumental||ev.horarioEnsaioVocal;
   let html=`
-    ${ev.foto?`<div class="detail-hero"><img src="${ev.foto}" alt="${ev.nome||""}" onerror="this.parentElement.style.display='none'"></div>`:""}
+    ${ev.foto ? `
+  <div class="detail-hero">
+    ${
+      isVideo(ev.foto)
+        ? getVideoEmbed(ev.foto)
+        : `<img src="${ev.foto}" alt="${ev.nome||""}" onerror="this.parentElement.style.display='none'">`
+    }
+  </div>
+` : ""}
     <div class="detail-header">
       <div class="detail-tag">Rocket Music · ${ev.tipo||"Evento"}</div>
       <div class="detail-title">${ev.nome||"Evento"}</div>
