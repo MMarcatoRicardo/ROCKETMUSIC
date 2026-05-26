@@ -290,16 +290,26 @@ function _removeDiacritics(s){
 }
 
 function splitNormalizedSongNames(raw){
+  // returns array of objects: {raw: originalPart, key: normalizedKey}
   if(!raw) return [];
-  // split medleys and common separators: +, newline, /, comma, em-dash, hyphen
   const parts = String(raw).split(/\+|\n|\/|,|—|-/).map(p=>p.trim()).filter(Boolean);
   return parts.map(p=>{
+    const rawPart = p;
     let t = _removeDiacritics(p);
-    // remove punctuation except letters/numbers/spaces
     t = t.replace(/[^\p{L}\p{N}\s]/gu,'');
     t = t.replace(/\s+/g,' ').trim().toLowerCase();
-    return t;
+    return {raw: rawPart, key: t};
   });
+}
+
+function prettifyKey(k){
+  if(!k) return '';
+  // simple Title Case, keep words separated
+  return k.split(/\s+/).map(w=>w? (w[0].toUpperCase()+w.slice(1)) : '').join(' ');
+}
+
+function getNormalizedSongKeys(raw){
+  return splitNormalizedSongNames(raw).map(part=>part.key);
 }
 
 function normalizeSongForKey(raw){
@@ -467,11 +477,20 @@ function renderPassados(filterType="Todos"){
         (g.musicas||[]).forEach(m=>{
           if(!m.nome) return;
           // prefer stored normalized keys (nomeKeys) when present
-          const parts = (m.nomeKeys && m.nomeKeys.length) ? m.nomeKeys : splitNormalizedSongNames(m.nome);
+          let parts = [];
+          if(m.nomeKeys && m.nomeKeys.length){
+            parts = m.nomeKeys.map(k=>{
+              if(typeof k === 'string') return {key:k, raw:prettifyKey(k)};
+              if(k?.key) return {key:k.key, raw:k.raw || prettifyKey(k.key)};
+              return null;
+            }).filter(Boolean);
+          }else{
+            parts = splitNormalizedSongNames(m.nome);
+          }
           if(parts.length){
             parts.forEach(p=>{
-              songCount[p] = (songCount[p]||0) + 1;
-              if(!displayExample[p]) displayExample[p] = m.nome.trim();
+              songCount[p.key] = (songCount[p.key]||0) + 1;
+              if(!displayExample[p.key]) displayExample[p.key] = p.raw || m.nome.trim();
             });
           }else{
             const k = normalizeSongForKey(m.nome);
@@ -965,7 +984,7 @@ function collectForm(){
       const nome=row.querySelector("[data-field=nome]")?.value.trim()||"";
       const artista=row.querySelector("[data-field=artista]")?.value.trim()||"";
       const tom=row.querySelector("[data-field=tom]")?.value.trim()||"";
-      if(nome) musicas.push({nome,artista,tom,nomeKeys:splitNormalizedSongNames(nome)});
+      if(nome) musicas.push({nome,artista,tom,nomeKeys:getNormalizedSongKeys(nome)});
     });
     if(titulo||musicas.length) setlist.push({titulo,musicas});
   });
