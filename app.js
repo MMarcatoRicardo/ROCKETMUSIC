@@ -466,7 +466,8 @@ function renderPassados(filterType="Todos"){
       (ev.setlist||[]).forEach(g=>{
         (g.musicas||[]).forEach(m=>{
           if(!m.nome) return;
-          const parts = splitNormalizedSongNames(m.nome);
+          // prefer stored normalized keys (nomeKeys) when present
+          const parts = (m.nomeKeys && m.nomeKeys.length) ? m.nomeKeys : splitNormalizedSongNames(m.nome);
           if(parts.length){
             parts.forEach(p=>{
               songCount[p] = (songCount[p]||0) + 1;
