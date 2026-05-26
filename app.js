@@ -284,6 +284,34 @@ function getVideoEmbed(url){
           </video>`;
 }
 
+// ── SONG NORMALIZATION HELPERS ──
+function _removeDiacritics(s){
+  return s.normalize && s.normalize('NFD').replace(/\p{Diacritic}/gu,'') || s;
+}
+
+function splitNormalizedSongNames(raw){
+  if(!raw) return [];
+  // split medleys and common separators: +, newline, /, comma, em-dash, hyphen
+  const parts = String(raw).split(/\+|\n|\/|,|—|-/).map(p=>p.trim()).filter(Boolean);
+  return parts.map(p=>{
+    let t = _removeDiacritics(p);
+    // remove punctuation except letters/numbers/spaces
+    t = t.replace(/[^\p{L}\p{N}\s]/gu,'');
+    t = t.replace(/\s+/g,' ').trim().toLowerCase();
+    return t;
+  });
+}
+
+function normalizeSongForKey(raw){
+  // produce a single canonical key for a whole string (useful when not splitting)
+  if(!raw) return '';
+  let t = _removeDiacritics(String(raw));
+  t = t.replace(/\+/g,' + ');
+  t = t.replace(/[^\p{L}\p{N}\s\+]/gu,'');
+  t = t.replace(/\s+/g,' ').trim().toLowerCase();
+  return t;
+}
+
 // ── HELPERS ──
 function parseDate(s){return s?new Date(s+"T12:00:00"):null}
 function fmtDate(s){const d=parseDate(s);if(!d)return"";return d.toLocaleDateString("pt-BR",{weekday:"long",day:"2-digit",month:"long",year:"numeric"})}
@@ -430,16 +458,29 @@ function renderPassados(filterType="Todos"){
   // ── Stats accordion (sempre sobre todos os passados, não filtrado) ──
   let statsHtml="";
   if(past.length){
-    // contagem de músicas
+    // contagem de músicas (usa normalização e separa medleys)
     const songCount={};
     const artistCount={};
+    const displayExample={};
     past.forEach(ev=>{
       (ev.setlist||[]).forEach(g=>{
         (g.musicas||[]).forEach(m=>{
-          if(!m.nome)return;
-          const key=m.nome.trim();
-          songCount[key]=(songCount[key]||0)+1;
-          if(m.artista){const ak=m.artista.trim();artistCount[ak]=(artistCount[ak]||0)+1;}
+          if(!m.nome) return;
+          const parts = splitNormalizedSongNames(m.nome);
+          if(parts.length){
+            parts.forEach(p=>{
+              songCount[p] = (songCount[p]||0) + 1;
+              if(!displayExample[p]) displayExample[p] = m.nome.trim();
+            });
+          }else{
+            const k = normalizeSongForKey(m.nome);
+            songCount[k] = (songCount[k]||0) + 1;
+            if(!displayExample[k]) displayExample[k] = m.nome.trim();
+          }
+          if(m.artista){
+            const ak = _removeDiacritics(m.artista.trim()).replace(/\s+/g,' ').toLowerCase();
+            artistCount[ak] = (artistCount[ak]||0) + 1;
+          }
         });
       });
     });
@@ -461,7 +502,7 @@ function renderPassados(filterType="Todos"){
         <div style="font-size:10px;text-transform:uppercase;letter-spacing:.18em;color:var(--or);opacity:.8;margin-bottom:8px">🎵 Músicas mais tocadas</div>
         <div class="acc" style="margin-bottom:12px;border-color:#1e1e1e">
           <div class="stat-rank-list" style="padding:0 4px">
-            ${topSongs.map(([nome,n],i)=>`<div class="stat-rank-item"><span class="stat-rank-pos">${i+1}</span><span class="stat-rank-name">${nome}</span><span class="stat-rank-count">${n}×</span></div>`).join("")}
+            ${topSongs.map(([nome,n],i)=>`<div class="stat-rank-item"><span class="stat-rank-pos">${i+1}</span><span class="stat-rank-name">${displayExample[nome]||nome}</span><span class="stat-rank-count">${n}×</span></div>`).join("")}
           </div>
         </div>`:""}
         ${topArtists.length?`
@@ -923,7 +964,7 @@ function collectForm(){
       const nome=row.querySelector("[data-field=nome]")?.value.trim()||"";
       const artista=row.querySelector("[data-field=artista]")?.value.trim()||"";
       const tom=row.querySelector("[data-field=tom]")?.value.trim()||"";
-      if(nome) musicas.push({nome,artista,tom});
+      if(nome) musicas.push({nome,artista,tom,nomeKeys:splitNormalizedSongNames(nome)});
     });
     if(titulo||musicas.length) setlist.push({titulo,musicas});
   });
